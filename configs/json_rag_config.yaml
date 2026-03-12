@@ -1,0 +1,58 @@
+# JSON医疗数据库RAG配置文件
+# 专门针对JSON格式的医疗知识库优化
+
+# 数据配置
+data:
+  source_type: "json"
+  json_file_path: "./knowledgebase1/medical_subset_2000.json"
+  total_records: 2000
+  chunk_strategy: "record_based"  # 基于记录数量分块
+  records_per_chunk: 20
+  
+# 存储配置
+storage:
+  working_dir: "./medical_json_storage"
+  auto_cleanup: true
+  
+# 模型配置
+model:
+  llm_model: "qwen2.5:7b"
+  embedding_model: "bge-m3:latest"
+  host: "http://localhost:11434"
+  timeout: 1200  # 20分钟
+  max_token_size: 8192
+  embedding_dim: 1024
+  
+# 处理配置
+processing:
+  concurrent_limit: 1
+  chunk_delay: 2  # 块间延迟秒数
+  error_retry: 3
+  timeout_wait: 30  # 超时后等待秒数
+  
+# 查询配置
+query:
+  default_modes: ["naive", "local", "global", "hybrid"]
+  safety_check: true
+  auto_test: true
+  test_questions:
+    - "糖尿病有哪些症状？"
+    - "高血压的治疗方法有哪些？"
+    - "心脏病的预防措施是什么？"
+    - "肺炎的病因是什么？"
+    
+# 医疗安全配置
+medical_safety:
+  enable_diagnosis_warning: true
+  enable_prescription_warning: true
+  enable_emergency_warning: true
+  diagnosis_keywords: ["诊断", "确诊", "是不是", "什么病", "得了", "患了", "我是否"]
+  prescription_keywords: ["开药", "用药量", "吃多少", "处方", "药物剂量", "怎么吃药", "服用方法"]
+  emergency_keywords: ["急救", "紧急", "突发", "抢救", "危险", "生命危险"]
+  
+# 日志配置
+logging:
+  level: "INFO"
+  file: "./logs/json_medical_rag.log"
+  max_size: "10MB"
+  backup_count: 5 

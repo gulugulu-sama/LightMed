@@ -1,0 +1,113 @@
+# 现有知识图谱配置文件
+# 专门用于加载和使用 medical_json_small_storage 中的预构建知识图谱
+
+# LightRAG基本配置
+lightrag:
+  working_dir: "./medical_json_small_storage"      # 使用现有的知识图谱目录
+  enable_cache: true                               # 启用缓存
+  enable_llm_cache: true                          # 启用LLM缓存
+  
+# LLM模型配置 - 查询优化
+llm_model:
+  max_token_size: 8192                            # 最大token数
+  max_async: 1                                    # 最大并发数
+  timeout: 600                                    # 查询超时(10分钟，比构建时短)
+  request_delay: 0.5                              # 请求间延迟(秒)
+  
+# 嵌入模型配置 - 查询优化
+embedding:
+  dimensions: 1024                                # BGE-M3维度
+  max_token_size: 8192                           # 最大token数
+  max_async: 1                                   # 最大并发数
+  batch_num: 2                                   # 批处理数量
+  timeout: 600                                   # 查询超时(10分钟)
+
+# 查询配置 - 优化查询性能
+query:
+  # naive查询模式配置
+  naive:
+    max_tokens_for_text_unit: 1500
+    max_tokens_for_local_context: 1500
+    max_tokens_for_global_context: 1500
+    timeout: 300                                 # 5分钟
+  
+  # local查询模式配置  
+  local:
+    max_tokens_for_text_unit: 2000
+    max_tokens_for_local_context: 2000
+    max_tokens_for_global_context: 2000
+    timeout: 600                                 # 10分钟
+    
+  # global查询模式配置
+  global:
+    max_tokens_for_text_unit: 2000
+    max_tokens_for_local_context: 2000
+    max_tokens_for_global_context: 2000
+    timeout: 600                                 # 10分钟
+    
+  # hybrid查询模式配置(推荐)
+  hybrid:
+    max_tokens_for_text_unit: 2500
+    max_tokens_for_local_context: 2500
+    max_tokens_for_global_context: 2500
+    timeout: 600                                 # 10分钟
+
+# 默认查询模式
+default_query_mode: "hybrid"                     # 推荐模式
+
+# 向量数据库配置
+vector_db:
+  similarity_threshold: 0.2                      # 相似度阈值
+  top_k: 5                                      # 返回最相关的结果数
+  max_distance: 0.7                             # 最大距离阈值
+
+# 医疗领域安全配置
+medical_rag:
+  enable_medical_entities: true                  # 启用医疗实体识别
+  enable_drug_interaction: true                  # 启用药物相互作用检查
+  enable_symptom_analysis: true                  # 启用症状分析
+  
+  # 医疗安全配置
+  safety_keywords:
+    diagnosis: ["诊断", "确诊", "是不是", "什么病", "患了", "得了", "病情"]
+    prescription: ["开药", "用药量", "吃多少", "处方", "药物剂量", "怎么吃药"]
+    emergency: ["急救", "紧急", "突发", "抢救", "危险"]
+
+# 性能调优配置 - 查询优化
+performance:
+  # 缓存配置
+  enable_cache: true                             # 启用缓存
+  cache_size: 1000                              # 增大缓存
+  cache_ttl: 7200                               # 缓存生存时间(2小时)
+  
+  # 并发控制
+  max_concurrent_requests: 1                     # 最大并发请求数
+  
+  # 内存管理
+  max_memory_usage: "2GB"                        # 最大内存使用
+  gc_threshold: 500                              # 垃圾回收阈值
+  
+# 错误处理配置
+error_handling:
+  max_retries: 2                                 # 最大重试次数
+  retry_delay: 1                                 # 重试延迟(秒)
+  timeout_retry: true                            # 超时重试
+  operation_timeout: 600                         # 操作超时(10分钟)
+  
+  # 降级策略
+  fallback_enabled: true                         # 启用降级
+  fallback_mode: "local"                         # 失败时降级模式
+  
+# 日志配置
+logging:
+  level: "INFO"                                  # 日志级别
+  file_path: "logs/existing_graph.log"           # 日志文件路径
+  max_file_size: "5MB"                           # 最大文件大小
+  backup_count: 3                                # 备份文件数量
+  format: "%(asctime)s | %(levelname)s | %(message)s"
+  
+  # 特定组件日志级别
+  component_levels:
+    lightrag: "INFO"
+    ollama: "WARNING"
+    httpx: "WARNING" 

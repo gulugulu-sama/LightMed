@@ -1,0 +1,157 @@
+# 医疗RAG系统 Docker Compose 配置
+# 支持一键部署、数据持久化和资源管理
+
+version: '3.8'
+
+services:
+  medical-rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medical-rag-system
+    hostname: medical-rag
+    
+    # 端口映射
+    ports:
+      - "11434:11434"  # Ollama API端口
+      - "8000:8000"    # 可选的Web API端口
+    
+    # 环境变量
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=http://localhost:11434
+      - RAG_CONFIG_PATH=/app/configs/rag_config.yaml
+      - MODEL_CONFIG_PATH=/app/configs/model_config.yaml
+      - WORKING_DIR=/app/medical_json_small_storage
+      - KNOWLEDGE_BASE_DIR=/app/knowledge_bases
+      - LOG_LEVEL=INFO
+    
+    # 数据卷挂载 - 实现数据持久化
+    volumes:
+      # 知识图谱数据持久化 - 直接映射到正确路径
+      - ./medical_json_small_storage:/app/medical_json_small_storage
+      - ./knowledgebase1:/app/knowledge_bases
+      
+      # 日志持久化
+      - ./logs:/app/logs
+      
+      # Ollama模型缓存持久化
+      - ./docker_data/ollama_models:/root/.ollama
+      
+      # 配置文件（可选，用于外部配置管理）
+      - ./configs:/app/configs:ro
+      
+      # 可选：挂载外部知识库文件
+      # - /path/to/your/knowledge:/app/knowledge_bases/external:ro
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'      # 最大使用4个CPU核心
+          memory: 8G       # 最大使用8GB内存
+        reservations:
+          cpus: '2.0'      # 保留2个CPU核心
+          memory: 4G       # 保留4GB内存
+    
+    # 内存限制（Docker Compose格式）
+    mem_limit: 8g
+    mem_reservation: 4g
+    cpus: 4.0
+    
+    # 重启策略
+    restart: unless-stopped
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    
+    # 网络配置
+    networks:
+      - medical-rag-network
+    
+    # 依赖关系（如果有外部数据库）
+    # depends_on:
+    #   - redis
+    #   - postgres
+    
+    # 安全配置
+    security_opt:
+      - no-new-privileges:true
+    
+    # 用户权限（可选，提高安全性）
+    # user: "1000:1000"
+    
+    # 临时文件系统（提高性能）
+    tmpfs:
+      - /tmp:size=1G,mode=1777
+    
+    # 标签
+    labels:
+      - "com.medical-rag.description=医疗RAG智能问答系统"
+      - "com.medical-rag.version=1.0"
+      - "com.medical-rag.maintainer=your-email@example.com"
+
+# 可选：Redis缓存服务（用于提高性能）
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: medical-rag-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - medical-rag-network
+
+# 可选：PostgreSQL数据库（用于结构化数据存储）
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: medical-rag-postgres
+  #   environment:
+  #     POSTGRES_DB: medical_rag
+  #     POSTGRES_USER: rag_user
+  #     POSTGRES_PASSWORD: secure_password_123
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - medical-rag-network
+
+# 数据卷定义
+volumes:
+  # 移除不再需要的bind挂载卷，直接使用目录映射
+  
+  medical_rag_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+  
+  ollama_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker_data/ollama_models
+  
+  # redis_data:
+  #   driver: local
+  
+  # postgres_data:
+  #   driver: local
+
+# 网络定义
+networks:
+  medical-rag-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16 

@@ -1,0 +1,107 @@
+# 医疗领域专用配置
+# 医疗RAG的特殊设置和提示词
+
+# 医疗安全设置
+medical_safety:
+  disclaimer_enabled: true       # 启用免责声明
+  no_diagnosis: true            # 禁止诊断
+  no_prescription: true         # 禁止开药
+  require_professional: true    # 要求就医提醒
+
+# 免责声明模板
+disclaimer_template: |
+  ⚠️ 医疗免责声明：
+  本系统提供的信息仅供参考，不能替代专业医疗诊断、治疗或建议。
+  如有健康问题，请咨询专业医疗人员。
+
+# 医疗领域提示词模板
+medical_prompts:
+  # 系统提示词
+  system_prompt: |
+    您是一个专业的医疗知识助手。请基于提供的医疗知识库内容回答问题。
+    
+    重要规则：
+    1. 仅基于知识库内容回答，不得编造信息
+    2. 不能进行诊断或开具处方
+    3. 始终建议用户咨询专业医疗人员
+    4. 如果知识库中没有相关信息，请明确说明
+    5. 使用专业但易懂的语言
+    
+  # 查询处理提示词
+  query_prompt: |
+    基于以下医疗知识库内容，回答用户问题：
+    
+    知识库内容：
+    {context}
+    
+    用户问题：{question}
+    
+    请提供准确、专业的回答，并在适当时提醒用户咨询医疗专业人员。
+    
+  # 实体提取提示词（针对医疗领域）
+  entity_extract_prompt: |
+    从以下医疗文本中提取重要的医疗实体，包括：
+    - 疾病名称
+    - 症状描述
+    - 药物名称
+    - 治疗方法
+    - 检查项目
+    - 解剖结构
+    
+    文本：{text}
+    
+    请以结构化格式返回提取的实体。
+
+# 知识库分类设置
+knowledge_categories:
+  textbooks:
+    path: "knowledge_bases/medical_textbooks"
+    description: "医学教科书和基础知识"
+    priority: 1
+    
+  guidelines:
+    path: "knowledge_bases/clinical_guidelines"
+    description: "临床指南和标准操作程序"
+    priority: 2
+    
+  drugs:
+    path: "knowledge_bases/drug_database" 
+    description: "药物数据库和用药指南"
+    priority: 3
+
+# 支持的文件格式
+supported_formats:
+  - ".pdf"
+  - ".txt"
+  - ".md"
+  - ".docx"
+
+# 医疗术语词典（用于实体识别增强）
+medical_terms:
+  diseases:
+    - "高血压"
+    - "糖尿病"
+    - "冠心病"
+    - "肺炎"
+    - "感冒"
+    
+  symptoms:
+    - "发热"
+    - "咳嗽"
+    - "头痛"
+    - "胸痛"
+    - "呼吸困难"
+    
+  drugs:
+    - "阿司匹林"
+    - "青霉素"
+    - "胰岛素"
+    - "硝苯地平"
+    - "氨氯地平"
+
+# 回答质量控制
+quality_control:
+  min_confidence: 0.7           # 最小置信度
+  max_response_length: 2000     # 最大回答长度
+  enable_fact_check: true       # 启用事实检查
+  cite_sources: true           # 引用来源 

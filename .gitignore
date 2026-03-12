@@ -1,0 +1,197 @@
+# ================================================
+# Python
+# ================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+MANIFEST
+
+# ================================================
+# 虚拟环境
+# ================================================
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# ================================================
+# 知识图谱存储（运行时生成，体积庞大）
+# ================================================
+lightrag_storage/
+medical_json_small_storage/
+medical_kb_chunked_storage/
+medical_kb_official_storage/
+medical_kb_test_storage/
+medical_lightrag_storage/
+medical_official_optimized/
+medical_simple_success/
+test_lightrag/
+test_lightrag_bge/
+
+# ================================================
+# 知识库原始数据（包含医疗数据文件，不上传）
+# ================================================
+knowledge_bases/
+knowledgebase1/
+know/
+docker_data/
+
+# ================================================
+# 外部依赖库（使用 pip install 安装）
+# ================================================
+LightRAG/
+
+# ================================================
+# 实验和临时文件
+# ================================================
+experiments/
+
+# ================================================
+# 日志文件
+# ================================================
+logs/
+*.log
+
+# ================================================
+# 系统文件
+# ================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================================================
+# IDE 配置
+# ================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ================================================
+# 测试缓存
+# ================================================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ================================================
+# 敏感配置（如有API Key请在此排除）
+# ================================================
+docker.env
+*.env
+
+# ================================================
+# 测试文件（各类测试脚本）
+# ================================================
+test*.py
+simple_test.py
+quick_test.py
+test.py
+debug_sources.py
+demo_dict_get.py
+fix_json_and_analyze.py
+fix_json_and_analyze_small.py
+auto_update.py
+
+# ================================================
+# 开发迭代版本文件（非最终版本的中间脚本）
+# ================================================
+medical_rag_demo.py
+medical_rag_demo1.py
+medical_rag_json_optimized.py
+medical_rag_json_optimized_small.py
+medical_rag_kb_test.py
+medical_rag_kb_test_chunked.py
+medical_rag_official_optimized.py
+medical_rag_optimized.py
+medical_rag_semaphore_optimized.py
+medical_rag_simple_success.py
+medical_rag_simple_test.py
+medical_rag_timeout_optimized.py
+use_existing_graph_with_suite.py
+use_existing_knowledge_graph.py
+
+# ================================================
+# 临时/工具文件
+# ================================================
+idea.txt
+prepare_for_github.ps1
+
+# ================================================
+# 测试用的 BAT 脚本（测试相关）
+# ================================================
+test_kb.bat
+test_kb_chunked.bat
+test_kb_official.bat
+
+# ================================================
+# 冗余的 README 变体和私人笔记
+# ================================================
+README_*.md
+DOCKER_*.md
+GITHUB_UPLOAD_GUIDE.md
+UPLOAD_STRUCTURE.md
+GRADUATION_DESIGN_PROPOSAL.md
+IMPLEMENTATION_GUIDE.md
+PROJECT_SUMMARY.md
+超时问题解决方案.md
+medical_data_sources.md
+
+# ================================================
+# 冗余的启动脚本变体
+# ================================================
+start.bat
+start_existing_graph.bat
+start_existing_graph_suite.bat
+start_json_medical_rag.bat
+start_medical_rag_official.bat
+start_optimized.bat
+start_optimized.sh
+start_optimized_final.bat
+start_small_test.bat
+start_success.bat
+start_timeout_fix.bat
+start_docker_fixed.sh
+run_medical_demo.bat
+
+# ================================================
+# 冗余的 Docker 变体文件
+# ================================================
+Dockerfile.minimal
+Dockerfile.ultralight
+.dockerignore
+container_copy_fix.sh
+container_symlink_fix.sh
+fix_container_inside.sh
+export-image.sh
+quick_build.sh
+ultra_quick_build.sh
+check-docker.bat
+deploy.bat
+
+# ================================================
+# 冗余的依赖文件
+# ================================================
+requirements_core.txt
+requirements_minimal.txt
+
+# ================================================
+# 旧版网页客户端
+# ================================================
+medical_rag_web_client.html
+
+# ================================================
+# 备份文件
+# ================================================
+*.bak
+*.backup
+*.old
+*.tmp
+*.temp

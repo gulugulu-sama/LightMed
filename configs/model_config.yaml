@@ -1,0 +1,67 @@
+# 模型配置文件 - 基于medical_rag_kb_official.py最终优化版本
+# 支持热插拔的模型配置
+
+# LLM模型配置 - 基于您的最终优化版本
+llm:
+  model: "qwen2.5:7b"      # 主模型
+  max_tokens: 8192         # 基于您的最终版本：8192 token
+  context_window: 8192     # 基于您的最终版本：8192上下文窗口
+  temperature: 0.1         # 控制创造性，医疗应用建议较低
+  timeout: 1200           # 基于您的最终版本：1200秒（20分钟）超时
+
+# 嵌入模型配置 - 基于您的成功版本
+embedding:
+  model: "bge-m3:latest"      # 中文优化的embedding模型
+  dimension: 1024             # BGE-M3维度
+  max_tokens: 8192            # 最大token数
+  timeout: 1800              # 30分钟超时，匹配您的成功版本
+
+# Ollama服务配置 - 基于最终优化版本
+ollama:
+  base_url: "http://localhost:11434"    # Ollama API地址
+  timeout: 1200                         # 总超时时间（20分钟）
+  connect_timeout: 30                   # 连接超时
+  read_timeout: 1200                    # 读取超时
+  
+# 模型性能配置 - 基于实践测试优化
+performance:
+  concurrent_requests: 1   # 并发请求数，基于成功版本使用Semaphore(1)
+  cache_enabled: true      # 启用缓存
+  retry_attempts: 3        # 重试次数
+  request_delay: 1.0       # 请求间延迟(秒) - 基于成功版本
+
+# 缓存配置
+cache:
+  enable_llm_cache: true                # 启用LLM缓存
+  enable_embedding_cache: true          # 启用嵌入缓存
+  cache_dir: "./cache"                  # 缓存目录
+  max_cache_size: 1000                  # 最大缓存条目数
+
+# 模型检查配置
+model_check:
+  auto_pull: true                       # 自动拉取缺失的模型
+  check_on_startup: true                # 启动时检查模型
+  fallback_enabled: true                # 启用模型降级
+  pull_timeout: 1800                    # 模型拉取超时(30分钟)
+
+# 医疗模式配置
+medical_mode:
+  enabled: true            # 启用医疗模式
+  strict_medical: true     # 严格医疗模式
+  safety_check: true       # 安全检查
+  add_disclaimer: true     # 添加免责声明
+
+# 医疗安全配置 - 基于实践测试加强
+medical_safety:
+  safety_check: true       # 启用医疗安全检查
+  disclaimer: true         # 显示免责声明
+  diagnosis_block: true    # 阻止诊断相关问题
+  prescription_block: true # 阻止处方相关问题
+  emergency_alert: true    # 紧急情况警告
+
+# 错误处理配置
+error_handling:
+  max_retries: 3          # 最大重试次数
+  retry_delay: 2          # 重试延迟(秒)
+  timeout_retry: true     # 超时重试
+  fallback_mode: "local"  # 失败时降级模式 

@@ -1,0 +1,185 @@
+# RAG配置文件 - 基于medical_rag_json_optimized_small.py成功版本
+# LightRAG框架参数配置
+
+# LightRAG基本配置 - 基于您的成功版本
+lightrag:
+  working_dir: "./medical_json_small_storage"      # 工作目录
+  enable_cache: true                     # 启用缓存
+  enable_llm_cache: true                 # 启用LLM缓存
+  
+# 知识图谱配置 - 基于您的成功版本
+knowledge_graph:
+  # 文档分块配置
+  chunk_token_size: 1000                 # 每块1000字符
+  chunk_overlap_token_size: 100          # 重叠大小，避免信息丢失
+  tiktoken_model_name: "gpt-4o-mini"     # token计算模型
+  large_doc_threshold: 3000              # 超过3000字符的文档需要分块
+  
+  # 实体提取配置 - 关键优化点，避免超时
+  entity_extract_max_gleaning: 1         # 只提取一次，避免过度计算
+  max_entities_per_chunk: 12             # 每个chunk最大实体数，适中值
+  max_relations_per_chunk: 8             # 每个chunk最大关系数，适中值
+  
+  # 图谱构建配置
+  enable_community_reports: true         # 启用社区报告
+  enable_full_docs: true                 # 启用完整文档存储
+  
+  # 超时配置 - 基于您的成功版本：1800秒
+  entity_extraction_timeout: 1800        # 实体提取超时(30分钟)
+  relation_extraction_timeout: 1800      # 关系提取超时(30分钟)
+
+# LLM模型配置 - 基于您的成功版本
+llm_model:
+  max_token_size: 8192                   # 8192 token
+  max_async: 1                           # 最大并发数，使用Semaphore(1)
+  timeout: 1800                          # 1800秒（30分钟）
+  request_delay: 1.0                     # 请求间延迟(秒)
+  
+# 嵌入模型配置 - 基于您的成功版本
+embedding:
+  dimensions: 1024                       # BGE-M3维度
+  max_token_size: 8192                   # 8192 token
+  max_async: 1                           # 最大并发数
+  batch_num: 2                           # 批处理数量，减少并发
+  timeout: 1800                          # 1800秒（30分钟）
+
+# 查询配置 - 基于您的成功版本，使用更长的超时
+query:
+  # naive查询模式配置
+  naive:
+    max_tokens_for_text_unit: 2000       # 减少token使用
+    max_tokens_for_local_context: 2000
+    max_tokens_for_global_context: 2000
+    timeout: 600                         # 查询超时(10分钟)
+  
+  # local查询模式配置  
+  local:
+    max_tokens_for_text_unit: 2500
+    max_tokens_for_local_context: 2500
+    max_tokens_for_global_context: 2500
+    timeout: 600                         # 查询超时(10分钟)
+    
+  # global查询模式配置
+  global:
+    max_tokens_for_text_unit: 2500
+    max_tokens_for_local_context: 2500
+    max_tokens_for_global_context: 2500
+    timeout: 600                         # 查询超时(10分钟)
+    
+  # hybrid查询模式配置(推荐) - 基于测试优化
+  hybrid:
+    max_tokens_for_text_unit: 3000
+    max_tokens_for_local_context: 3000
+    max_tokens_for_global_context: 3000
+    timeout: 600                         # 查询超时(10分钟)
+
+# 默认查询模式
+default_query_mode: "hybrid"             # 推荐模式
+
+# 向量数据库配置 - 针对bge-m3优化
+vector_db:
+  similarity_threshold: 0.15             # 相似度阈值
+  top_k: 6                              # 返回最相关的结果数，适中值
+  max_distance: 0.8                     # 最大距离阈值
+
+# 医疗领域特殊配置 - 基于实践优化
+medical_rag:
+  enable_medical_entities: true          # 启用医疗实体识别
+  medical_entity_types:                  # 医疗实体类型
+    - "疾病"
+    - "症状"  
+    - "药物"
+    - "治疗方法"
+    - "检查项目"
+    - "解剖结构"
+    - "医疗设备"
+    - "医疗机构"
+  enable_drug_interaction: true          # 启用药物相互作用检查
+  enable_symptom_analysis: true          # 启用症状分析
+  
+  # 医疗安全配置 - 基于您的成功版本
+  safety_keywords:                       # 安全关键词检测
+    diagnosis: ["诊断", "确诊", "是不是", "什么病", "患了", "得了", "病情"]
+    prescription: ["开药", "用药量", "吃多少", "处方", "药物剂量", "怎么吃药"]
+    emergency: ["急救", "紧急", "突发", "抢救", "危险"]
+
+# 性能调优配置 - 基于您的成功版本
+performance:
+  # 文档插入优化 - 基于您的智能分块策略
+  document_batch_size: 1                 # 单个处理，避免超时
+  insert_delay: 1.0                      # 批次间延迟(秒) - 基于您的成功版本
+  insert_timeout: 1800                   # 文档插入超时(30分钟)
+  
+  # 智能分块配置 - 基于您的成功版本
+  smart_chunking: true                   # 启用智能分块
+  chunk_size: 1000                       # 每块1000字符
+  large_doc_threshold: 3000              # 超过3000字符需要分块
+  sentence_split_ratio: 0.7              # 句号分割位置比例
+  
+  # 缓存配置
+  enable_cache: true                     # 启用缓存
+  cache_size: 500                        # 缓存大小
+  cache_ttl: 3600                        # 缓存生存时间(1小时)
+  
+  # 并发控制 - 关键优化，基于成功版本
+  max_concurrent_requests: 1             # 最大并发请求数，使用Semaphore(1)
+  semaphore_timeout: 1800                # Semaphore超时(30分钟)
+  
+  # 文档处理优化
+  chunk_processing_delay: 0.5            # 分块处理延迟
+  entity_processing_delay: 1.0           # 实体处理延迟
+  
+  # 内存管理
+  max_memory_usage: "2GB"                # 最大内存使用
+  gc_threshold: 1000                     # 垃圾回收阈值
+  
+# 错误处理配置 - 基于您的成功版本
+error_handling:
+  max_retries: 3                         # 最大重试次数
+  retry_delay: 2                         # 重试延迟(秒)
+  timeout_retry: true                    # 超时重试
+  exponential_backoff: true              # 指数退避
+  operation_timeout: 1800                # 操作超时(30分钟)
+  
+  # 降级策略
+  fallback_enabled: true                 # 启用降级
+  fallback_mode: "local"                 # 失败时降级模式
+  
+  # 错误恢复 - 基于您的版本
+  auto_recovery: true                    # 自动恢复
+  recovery_delay: 30                     # 恢复延迟(30秒)，超时错误时等待更长时间
+  
+# 日志配置 - 优化日志级别
+logging:
+  level: "INFO"                          # 日志级别
+  file_path: "logs/lightrag.log"         # 日志文件路径
+  max_file_size: "10MB"                  # 最大文件大小
+  backup_count: 5                        # 备份文件数量
+  format: "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
+  
+  # 特定组件日志级别
+  component_levels:
+    lightrag: "INFO"
+    ollama: "WARNING"
+    httpx: "WARNING"
+    
+# 监控配置
+monitoring:
+  enable_metrics: true                   # 启用指标收集
+  metrics_interval: 60                   # 指标收集间隔(秒)
+  enable_health_check: true              # 启用健康检查
+  health_check_interval: 30              # 健康检查间隔(秒)
+  
+# 存储配置
+storage:
+  auto_backup: true                      # 自动备份
+  backup_interval: 3600                  # 备份间隔(1小时)
+  backup_retention: 7                    # 备份保留天数
+  compression: true                      # 启用压缩
+  
+# 开发调试配置
+debug:
+  enable_debug: false                    # 启用调试模式
+  verbose_logging: false                 # 详细日志
+  save_intermediate_results: false       # 保存中间结果
+  profile_performance: false             # 性能分析 

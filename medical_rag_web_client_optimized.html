@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医疗RAG智能问答系统 - 内存优化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .chat-section {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .chat-messages {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+            position: relative;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px 18px 5px 18px;
+            margin-left: 20%;
+            word-wrap: break-word;
+        }
+
+        .bot-message {
+            background: white;
+            border: 1px solid #e9ecef;
+            padding: 15px 20px;
+            border-radius: 18px 18px 18px 5px;
+            margin-right: 20%;
+            position: relative;
+        }
+
+        .message-meta {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .info-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #27ae60; }
+        .status-offline { background: #e74c3c; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sources-info {
+            background: #e8f4fd;
+            border-left: 4px solid #667eea;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9em;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 0 8px 8px 0;
+            color: #c0392b;
+        }
+
+        .examples {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .example-btn {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .example-btn:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .quick-btn {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* 🆕 内存优化相关样式 */
+        .memory-status {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .load-more-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .mode-selector {
+                flex-wrap: wrap;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 医疗RAG智能问答系统</h1>
+            <p>基于知识图谱的智能医疗咨询助手 - 内存优化版</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 聊天区域 -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3>💬 智能问答</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="hybrid">混合模式</button>
+                        <button class="mode-btn" data-mode="local">局部推理</button>
+                        <button class="mode-btn" data-mode="global">全局推理</button>
+                        <button class="mode-btn" data-mode="naive">快速检索</button>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="sendExample('糖尿病有什么症状？')">糖尿病症状</button>
+                    <button class="quick-btn" onclick="sendExample('高血压的治疗方法')">高血压治疗</button>
+                    <button class="quick-btn" onclick="sendExample('心肌梗死如何诊断？')">心梗诊断</button>
+                    <button class="quick-btn" onclick="messageManager.clearMessages()">清空对话</button>
+                    <button class="quick-btn" onclick="messageManager.exportHistory()">导出历史</button>
+                    <button class="quick-btn" onclick="messageManager.showStats()">查看统计</button>
+                    <button class="quick-btn" onclick="messageManager.loadAllHistory()">加载全部</button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message">
+                        <div class="bot-message">
+                            👋 您好！我是医疗RAG智能助手。我可以回答关于医疗健康的问题，包括疾病症状、诊断标准、治疗方法等。请输入您的问题！
+                            <div class="message-meta">
+                                <span>系统消息</span>
+                                <span>刚刚</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <input type="text" class="message-input" id="messageInput" 
+                           placeholder="请输入您的医疗问题..." 
+                           onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+
+            <!-- 信息面板 -->
+            <div class="info-section">
+                <!-- 系统状态 -->
+                <div class="info-card">
+                    <h3>📊 系统状态</h3>
+                    <div id="systemStatus">
+                        <p><span class="status-indicator status-offline"></span>检查连接中...</p>
+                    </div>
+                    <div class="memory-status" id="memoryStatus">
+                        消息数量: 1 / 最大: 30 | 内存使用: 优化
+                    </div>
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="info-card">
+                    <h3>📈 使用统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalQueries">-</div>
+                            <div class="stat-label">总查询数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="successRate">-</div>
+                            <div class="stat-label">成功率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="avgTime">-</div>
+                            <div class="stat-label">平均耗时</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="kbSize">-</div>
+                            <div class="stat-label">知识库大小</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 查询模式说明 -->
+                <div class="info-card">
+                    <h3>🔧 查询模式</h3>
+                    <div class="examples">
+                        <div style="font-size: 0.9em; line-height: 1.6;">
+                            <p><strong>混合模式</strong>：结合多种推理方式，提供最全面答案（推荐）</p>
+                            <p><strong>局部推理</strong>：基于相关实体和关系进行推理</p>
+                            <p><strong>全局推理</strong>：基于全局知识图谱提供广泛信息</p>
+                            <p><strong>快速检索</strong>：快速返回最相关的文档片段</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 示例问题 -->
+                <div class="info-card">
+                    <h3>💡 示例问题</h3>
+                    <div class="examples">
+                        <button class="example-btn" onclick="sendExample('糖尿病有哪些类型？')">
+                            糖尿病有哪些类型？
+                        </button>
+                        <button class="example-btn" onclick="sendExample('高血压的诊断标准是什么？')">
+                            高血压的诊断标准是什么？
+                        </button>
+                        <button class="example-btn" onclick="sendExample('心肌梗死的急救处理方法')">
+                            心肌梗死的急救处理方法
+                        </button>
+                        <button class="example-btn" onclick="sendExample('阿司匹林的副作用有哪些？')">
+                            阿司匹林的副作用有哪些？
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🆕 智能消息管理器 - 核心优化类（增强版分页加载）
+        class MessageManager {
+            constructor() {
+                this.maxVisibleMessages = 30;  // 最多显示30条消息
+                this.loadBatchSize = 20;       // 每次加载20条历史消息
+                this.container = document.getElementById('chatMessages');
+                this.historyKey = 'medical_rag_history';
+                this.currentDisplayStart = 0;  // 当前显示的起始位置
+                this.allMessages = [];         // 所有消息的内存缓存
+                this.loadHistory();
+            }
+
+            // 添加消息（核心优化方法）
+            addMessage(type, content, isLoading = false, meta = null, isError = false) {
+                const newMessage = {
+                    type,
+                    content,
+                    meta,
+                    isError,
+                    timestamp: Date.now(),
+                    id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                };
+
+                // 1. 添加到内存缓存
+                this.allMessages.push(newMessage);
+
+                // 2. 保存到localStorage（无限量存储）
+                this.saveToLocalStorage();
+
+                // 3. 管理显示区域
+                this.manageDisplayArea();
+
+                // 4. 创建并添加DOM元素
+                const messageElement = this.createMessageElement(newMessage, isLoading);
+                this.container.appendChild(messageElement);
+                
+                // 5. 自动滚动
+                this.container.scrollTop = this.container.scrollHeight;
+
+                // 6. 更新状态显示
+                this.updateMemoryStatus();
+
+                return newMessage.id;
+            }
+
+            // 管理显示区域（核心逻辑）
+            manageDisplayArea() {
+                const visibleMessages = this.container.querySelectorAll('.message:not(.load-more-btn)');
+                
+                // 如果显示的消息超过30条（不包括欢迎消息），移除最旧的
+                if (visibleMessages.length > this.maxVisibleMessages) {
+                    // 保护第一条欢迎消息，从第二条开始移除
+                    for (let i = 1; i < visibleMessages.length - this.maxVisibleMessages + 1; i++) {
+                        if (visibleMessages[i]) {
+                            visibleMessages[i].remove();
+                            this.currentDisplayStart++;
+                        }
+                    }
+                }
+
+                // 如果有隐藏的历史消息，显示"查看历史记录"按钮
+                if (this.currentDisplayStart > 0 && !this.container.querySelector('.load-more-btn')) {
+                    this.showLoadMoreButton();
+                }
+            }
+
+            // 显示"查看历史记录"按钮
+            showLoadMoreButton() {
+                const loadMoreBtn = document.createElement('div');
+                loadMoreBtn.className = 'message load-more-btn';
+                loadMoreBtn.innerHTML = `
+                    <button class="load-more-btn" onclick="messageManager.loadMoreHistory()">
+                        📜 查看历史记录 (${this.currentDisplayStart} 条消息隐藏)
+                    </button>
+                `;
+                
+                // 插入到第一条消息后面
+                const firstMessage = this.container.querySelector('.message');
+                if (firstMessage && firstMessage.nextSibling) {
+                    this.container.insertBefore(loadMoreBtn, firstMessage.nextSibling);
+                } else if (firstMessage) {
+                    this.container.insertBefore(loadMoreBtn, firstMessage.nextSibling);
+                }
+            }
+
+            // 加载更多历史记录
+            loadMoreHistory() {
+                // 计算要加载的消息范围
+                const startIndex = Math.max(0, this.currentDisplayStart - this.loadBatchSize);
+                const endIndex = this.currentDisplayStart;
+                const messagesToLoad = this.allMessages.slice(startIndex, endIndex);
+
+                // 移除"查看历史记录"按钮
+                const loadMoreBtn = this.container.querySelector('.load-more-btn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.remove();
+                }
+
+                // 在当前消息前面插入历史消息
+                const firstCurrentMessage = this.container.children[1]; // 跳过欢迎消息
+                
+                messagesToLoad.forEach((msg, index) => {
+                    const messageElement = this.createMessageElement(msg, false);
+                    if (firstCurrentMessage) {
+                        this.container.insertBefore(messageElement, firstCurrentMessage);
+                    } else {
+                        this.container.appendChild(messageElement);
+                    }
+                });
+
+                // 更新显示起始位置
+                this.currentDisplayStart = startIndex;
+
+                // 如果还有更多历史消息，重新显示按钮
+                if (this.currentDisplayStart > 0) {
+                    this.showLoadMoreButton();
+                }
+
+                // 滚动到新加载的消息区域
+                if (messagesToLoad.length > 0) {
+                    const newlyLoadedMessage = this.container.children[1]; // 第一条新加载的消息
+                    if (newlyLoadedMessage) {
+                        newlyLoadedMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+
+                this.updateMemoryStatus();
+                
+                // 添加加载提示
+                this.addSystemMessage(`✅ 已加载 ${messagesToLoad.length} 条历史消息`);
+            }
+
+            // 创建消息元素
+            createMessageElement(messageData, isLoading) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.id = messageData.id;
+                
+                if (isLoading) {
+                    messageDiv.setAttribute('data-loading', 'true');
+                }
+                
+                let messageClass = messageData.type === 'user' ? 'user-message' : 'bot-message';
+                let metaHtml = '';
+                
+                if (messageData.type === 'user') {
+                    metaHtml = `<div class="message-meta"><span>您</span><span>${this.formatTime(messageData.timestamp)}</span></div>`;
+                } else if (messageData.type === 'bot') {
+                    if (messageData.meta) {
+                        metaHtml = `<div class="message-meta"><span>${messageData.meta.mode}模式</span><span>耗时: ${messageData.meta.time}</span></div>`;
+                    } else {
+                        metaHtml = `<div class="message-meta"><span>AI助手</span><span>${this.formatTime(messageData.timestamp)}</span></div>`;
+                    }
+                } else if (messageData.type === 'system') {
+                    metaHtml = `<div class="message-meta"><span>系统</span><span>${this.formatTime(messageData.timestamp)}</span></div>`;
+                }
+                
+                let additionalClass = '';
+                if (messageData.isError) {
+                    additionalClass = ' error-message';
+                } else if (messageData.content.includes('📚 引用了')) {
+                    additionalClass = ' sources-info';
+                }
+                
+                messageDiv.innerHTML = `
+                    <div class="${messageClass}${additionalClass}">
+                        ${messageData.content.replace(/\n/g, '<br>')}
+                        ${metaHtml}
+                    </div>
+                `;
+                
+                return messageDiv;
+            }
+
+            // 保存到localStorage（无限量存储）
+            saveToLocalStorage() {
+                try {
+                    const dataToSave = {
+                        messages: this.allMessages,
+                        lastUpdate: Date.now(),
+                        version: '2.0'
+                    };
+                    localStorage.setItem(this.historyKey, JSON.stringify(dataToSave));
+                } catch (e) {
+                    console.warn('localStorage存储失败，尝试清理最旧数据:', e);
+                    
+                    // 如果存储失败，删除最旧的10%消息后重试
+                    const removeCount = Math.floor(this.allMessages.length * 0.1);
+                    this.allMessages.splice(0, removeCount);
+                    
+                    try {
+                        const dataToSave = {
+                            messages: this.allMessages,
+                            lastUpdate: Date.now(),
+                            version: '2.0'
+                        };
+                        localStorage.setItem(this.historyKey, JSON.stringify(dataToSave));
+                        this.addSystemMessage(`⚠️ 存储空间不足，已自动清理 ${removeCount} 条最旧消息`);
+                    } catch (e2) {
+                        console.error('localStorage存储彻底失败:', e2);
+                        this.addSystemMessage('❌ 历史消息存储失败，建议导出备份');
+                    }
+                }
+            }
+
+            // 从localStorage加载历史
+            loadHistory() {
+                try {
+                    const saved = localStorage.getItem(this.historyKey);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        
+                        // 兼容旧版本数据格式
+                        if (Array.isArray(data)) {
+                            this.allMessages = data.map((msg, index) => ({
+                                ...msg,
+                                id: msg.id || `legacy_${index}_${Date.now()}`
+                            }));
+                        } else if (data.messages) {
+                            this.allMessages = data.messages;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('读取localStorage失败:', e);
+                    this.allMessages = [];
+                }
+
+                // 显示最近的消息（不超过maxVisibleMessages）
+                this.displayRecentMessages();
+                this.updateMemoryStatus();
+            }
+
+            // 显示最近的消息
+            displayRecentMessages() {
+                if (this.allMessages.length === 0) return;
+
+                // 计算要显示的消息范围
+                const totalMessages = this.allMessages.length;
+                const startIndex = Math.max(0, totalMessages - this.maxVisibleMessages + 1); // +1为了给欢迎消息留位置
+                const messagesToShow = this.allMessages.slice(startIndex);
+
+                // 设置显示起始位置
+                this.currentDisplayStart = startIndex;
+
+                // 显示消息
+                messagesToShow.forEach(msg => {
+                    const messageElement = this.createMessageElement(msg, false);
+                    this.container.appendChild(messageElement);
+                });
+
+                // 如果有隐藏的历史消息，显示按钮
+                if (this.currentDisplayStart > 0) {
+                    this.showLoadMoreButton();
+                }
+            }
+
+            // 清空消息
+            clearMessages() {
+                // 清空所有数据
+                this.allMessages = [];
+                this.currentDisplayStart = 0;
+                localStorage.removeItem(this.historyKey);
+                
+                // 重置DOM，只保留欢迎消息
+                this.container.innerHTML = `
+                    <div class="message">
+                        <div class="bot-message">
+                            👋 对话已清空。我是医疗RAG智能助手，请输入您的问题！
+                            <div class="message-meta">
+                                <span>系统消息</span>
+                                <span>${this.getCurrentTime()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.updateMemoryStatus();
+            }
+
+            // 导出历史消息
+            exportHistory() {
+                const exportData = {
+                    exportTime: new Date().toISOString(),
+                    messageCount: this.allMessages.length,
+                    currentlyVisible: this.container.querySelectorAll('.message:not(.load-more-btn)').length,
+                    hiddenMessages: this.currentDisplayStart,
+                    messages: this.allMessages,
+                    metadata: {
+                        version: '2.0',
+                        maxVisibleMessages: this.maxVisibleMessages,
+                        loadBatchSize: this.loadBatchSize
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `medical_rag_history_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                this.addSystemMessage(`✅ 历史记录已导出 (总计: ${this.allMessages.length} 条，当前显示: ${this.container.querySelectorAll('.message:not(.load-more-btn)').length} 条)`);
+            }
+
+            // 添加系统消息（内部方法）
+            addSystemMessage(content) {
+                const systemMsg = {
+                    type: 'system',
+                    content: content,
+                    meta: null,
+                    isError: false,
+                    timestamp: Date.now(),
+                    id: 'sys_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                };
+
+                // 不添加到历史记录，只显示
+                const messageElement = this.createMessageElement(systemMsg, false);
+                this.container.appendChild(messageElement);
+                this.container.scrollTop = this.container.scrollHeight;
+
+                // 3秒后自动淡出系统消息
+                setTimeout(() => {
+                    messageElement.style.transition = 'opacity 0.5s';
+                    messageElement.style.opacity = '0.6';
+                }, 3000);
+            }
+
+            // 移除消息
+            removeMessage(messageId) {
+                const messageElement = document.getElementById(messageId);
+                if (messageElement) {
+                    messageElement.remove();
+                }
+                this.updateMemoryStatus();
+            }
+
+            // 更新内存状态显示
+            updateMemoryStatus() {
+                const visibleCount = this.container.querySelectorAll('.message:not(.load-more-btn)').length;
+                const totalStoredCount = this.allMessages.length;
+                const hiddenCount = this.currentDisplayStart;
+                const memoryUsage = this.estimateMemoryUsage();
+
+                document.getElementById('memoryStatus').innerHTML = `
+                    显示: ${visibleCount} / 最大: ${this.maxVisibleMessages} | 
+                    历史: ${totalStoredCount} 条 | 
+                    隐藏: ${hiddenCount} 条 | 
+                    内存: ${memoryUsage}
+                `;
+            }
+
+            // 估算内存使用量
+            estimateMemoryUsage() {
+                const visibleCount = this.container.querySelectorAll('.message:not(.load-more-btn)').length;
+                const estimatedKB = Math.round(visibleCount * 1.5);
+                
+                if (estimatedKB < 50) return "优化";
+                if (estimatedKB < 100) return "良好";
+                if (estimatedKB < 200) return "一般";
+                return "较高";
+            }
+
+            // 格式化时间戳
+            formatTime(timestamp) {
+                if (!timestamp) return this.getCurrentTime();
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            // 获取当前时间
+            getCurrentTime() {
+                return new Date().toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            // 获取统计信息
+            getStats() {
+                return {
+                    totalMessages: this.allMessages.length,
+                    visibleMessages: this.container.querySelectorAll('.message:not(.load-more-btn)').length,
+                    hiddenMessages: this.currentDisplayStart,
+                    memoryUsage: this.estimateMemoryUsage(),
+                    oldestMessage: this.allMessages.length > 0 ? new Date(this.allMessages[0].timestamp).toLocaleString('zh-CN') : null,
+                    newestMessage: this.allMessages.length > 0 ? new Date(this.allMessages[this.allMessages.length - 1].timestamp).toLocaleString('zh-CN') : null
+                };
+            }
+
+            // 显示统计信息
+            showStats() {
+                const stats = this.getStats();
+                const statsMessage = `
+📊 对话统计信息：
+━━━━━━━━━━━━━━━━━━━━
+📝 总消息数：${stats.totalMessages} 条
+👁️ 当前显示：${stats.visibleMessages} 条
+📦 隐藏消息：${stats.hiddenMessages} 条
+💾 内存状态：${stats.memoryUsage}
+⏰ 最早消息：${stats.oldestMessage || '无'}
+🕒 最新消息：${stats.newestMessage || '无'}
+━━━━━━━━━━━━━━━━━━━━
+💡 提示：点击"查看历史记录"可加载更多消息
+                `.trim();
+                
+                this.addSystemMessage(statsMessage);
+            }
+
+            // 加载全部历史记录
+            loadAllHistory() {
+                if (this.currentDisplayStart === 0) {
+                    this.addSystemMessage('✅ 所有历史消息已经全部显示');
+                    return;
+                }
+
+                // 移除"查看历史记录"按钮
+                const loadMoreBtn = this.container.querySelector('.load-more-btn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.remove();
+                }
+
+                // 加载所有隐藏的消息
+                const messagesToLoad = this.allMessages.slice(0, this.currentDisplayStart);
+                const firstCurrentMessage = this.container.children[1]; // 跳过欢迎消息
+                
+                // 显示加载进度（如果消息很多的话）
+                if (messagesToLoad.length > 50) {
+                    this.addSystemMessage(`🔄 正在加载 ${messagesToLoad.length} 条历史消息，请稍候...`);
+                }
+
+                // 分批加载，避免页面卡顿
+                const batchSize = 20;
+                let currentBatch = 0;
+                
+                const loadBatch = () => {
+                    const startIdx = currentBatch * batchSize;
+                    const endIdx = Math.min(startIdx + batchSize, messagesToLoad.length);
+                    const batchMessages = messagesToLoad.slice(startIdx, endIdx);
+                    
+                    batchMessages.forEach(msg => {
+                        const messageElement = this.createMessageElement(msg, false);
+                        if (firstCurrentMessage) {
+                            this.container.insertBefore(messageElement, firstCurrentMessage);
+                        } else {
+                            this.container.appendChild(messageElement);
+                        }
+                    });
+                    
+                    currentBatch++;
+                    
+                    if (endIdx < messagesToLoad.length) {
+                        // 继续加载下一批
+                        setTimeout(loadBatch, 10); // 短暂延迟，避免阻塞UI
+                    } else {
+                        // 全部加载完成
+                        this.currentDisplayStart = 0;
+                        this.updateMemoryStatus();
+                        
+                        // 滚动到第一条历史消息
+                        const firstHistoryMessage = this.container.children[1];
+                        if (firstHistoryMessage) {
+                            firstHistoryMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                        
+                        this.addSystemMessage(`✅ 已加载全部 ${messagesToLoad.length} 条历史消息`);
+                    }
+                };
+                
+                loadBatch();
+            }
+
+            // 智能清理（只在内存压力大时调用）
+            smartCleanup() {
+                const stats = this.getStats();
+                if (stats.memoryUsage === "较高" && this.allMessages.length > 200) {
+                    const removeCount = Math.floor(this.allMessages.length * 0.2); // 清理20%最旧消息
+                    this.allMessages.splice(0, removeCount);
+                    this.saveToLocalStorage();
+                    this.addSystemMessage(`🧹 内存优化：已清理 ${removeCount} 条最旧消息`);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // 全局变量
+        let currentMode = 'hybrid';
+        const API_BASE_URL = 'http://localhost:8000';
+        let messageManager;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            messageManager = new MessageManager();
+            
+            checkSystemStatus();
+            updateStats();
+            
+            setInterval(updateStats, 30000);
+        });
+
+        // 模式切换
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentMode = this.dataset.mode;
+                messageManager.addMessage('system', `已切换到${getModeDisplayName(currentMode)}模式`);
+            });
+        });
+
+        // 获取模式显示名称
+        function getModeDisplayName(mode) {
+            const modeNames = {
+                'hybrid': '混合推理',
+                'local': '局部推理',
+                'global': '全局推理',
+                'naive': '快速检索'
+            };
+            return modeNames[mode] || mode;
+        }
+
+        // 检查系统状态
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('systemStatus');
+                if (response.ok && data.status === 'healthy') {
+                    statusElement.innerHTML = `
+                        <p><span class="status-indicator status-online"></span>系统运行正常</p>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 8px;">
+                            版本: ${data.version} | 运行时间: ${data.uptime}
+                        </p>
+                    `;
+                } else {
+                    throw new Error('System unhealthy');
+                }
+            } catch (error) {
+                document.getElementById('systemStatus').innerHTML = `
+                    <p><span class="status-indicator status-offline"></span>连接失败</p>
+                    <p style="font-size: 0.9em; color: #e74c3c; margin-top: 8px;">
+                        请确保API服务器正在运行 (http://localhost:8000)
+                    </p>
+                `;
+            }
+        }
+
+        // 更新统计信息
+        async function updateStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/stats`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('totalQueries').textContent = data.total_queries || 0;
+                    
+                    const successRate = data.total_queries > 0 
+                        ? Math.round((data.successful_queries / data.total_queries) * 100)
+                        : 100;
+                    document.getElementById('successRate').textContent = successRate + '%';
+                    
+                    document.getElementById('avgTime').textContent = (data.avg_processing_time || 0).toFixed(2) + 's';
+                    
+                    const kbInfo = data.knowledge_base_info;
+                    const kbSize = (kbInfo.documents || 0) + (kbInfo.entities || 0) + (kbInfo.relationships || 0);
+                    document.getElementById('kbSize').textContent = kbSize.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Failed to update stats:', error);
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            messageManager.addMessage('user', message);
+            input.value = '';
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="loading"></span> 思考中...';
+            
+            try {
+                const loadingId = messageManager.addMessage('bot', '正在分析您的问题...', true);
+                
+                const response = await fetch(`${API_BASE_URL}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: message,
+                        mode: currentMode,
+                        include_sources: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                messageManager.removeMessage(loadingId);
+                
+                if (response.ok && data.success) {
+                    let botMessage = data.answer;
+                    
+                    if (data.sources) {
+                        const totalSources = (data.sources.relevant_chunks || 0) + 
+                                           (data.sources.relevant_entities || 0) + 
+                                           (data.sources.relevant_relations || 0);
+                        if (totalSources > 0) {
+                            botMessage += `\n\n📚 引用了 ${totalSources} 个知识单元 (文档:${data.sources.relevant_chunks || 0}, 实体:${data.sources.relevant_entities || 0}, 关系:${data.sources.relevant_relations || 0})`;
+                        }
+                    }
+                    
+                    messageManager.addMessage('bot', botMessage, false, {
+                        mode: getModeDisplayName(data.mode),
+                        time: data.processing_time.toFixed(2) + 's'
+                    });
+                } else {
+                    messageManager.addMessage('bot', `❌ 查询失败: ${data.error || '未知错误'}`, false, null, true);
+                }
+                
+                updateStats();
+                
+            } catch (error) {
+                const loadingMessages = document.querySelectorAll('[data-loading="true"]');
+                loadingMessages.forEach(msg => msg.remove());
+                
+                messageManager.addMessage('bot', `❌ 网络错误: ${error.message}`, false, null, true);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '发送';
+            }
+        }
+
+        // 发送示例问题
+        function sendExample(question) {
+            document.getElementById('messageInput').value = question;
+            sendMessage();
+        }
+
+        // 处理键盘事件
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html> 
