@@ -106,7 +106,7 @@ auto_update.py
 medical_rag_demo.py
 medical_rag_demo1.py
 medical_rag_json_optimized.py
-medical_rag_json_optimized_small.py
+medical_rag_kb_official.py
 medical_rag_kb_test.py
 medical_rag_kb_test_chunked.py
 medical_rag_official_optimized.py
