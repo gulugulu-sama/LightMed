@@ -17,7 +17,7 @@
 
 ---
 
-# LightRAG : Zero to Hero
+# RAG : Zero to Hero
 
 这是我的一个个人学习项目，也是我第一次尝试构建基于知识图谱的 RAG 系统。领域选择了医疗，使用的框架是 [LightRAG](https://github.com/HKUDS/LightRAG) 和 [Ollama](https://ollama.ai/)。
 
