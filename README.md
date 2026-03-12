@@ -174,6 +174,8 @@ python medical_rag_json_optimized_small.py
 
 脚本会将 JSON 中的每 3 条疾病记录合并为一个文本块再传入 LightRAG。这个过程需要较长时间。插入 200 条记录大约需要 1~2 小时。请耐心等待，中途不要中断。
 
+<img width="809" height="569" alt="c4a5397b6e5fe1e107981f683f9477cd" src="https://github.com/user-attachments/assets/810c8e67-08bc-48f4-9ea3-de13e60774d0" />
+
 ### 第二步：启动 API 服务
 
 ```bash
