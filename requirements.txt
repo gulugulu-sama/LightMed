@@ -7,7 +7,8 @@
 # ========================================
 # 核心RAG框架
 # ========================================
-lightrag-hku>=0.1.0
+# lightrag-hku 请从源码安装，见 README 安装步骤
+# git clone https://github.com/HKUDS/LightRAG.git && cd LightRAG && pip install -e .
 
 # ========================================
 # 模型服务
