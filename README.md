@@ -1,10 +1,9 @@
 <div align="center">
 
-![LightMed Banner](assets/lightmed_banner.png)
 
-**LightRAG + Ollama: Medical Knowledge Graph from Scratch**
+<img width="1566" height="459" alt="bf9caf707b13f146b3d5d7f2848dcd4c" src="https://github.com/user-attachments/assets/51f97ac6-6175-43a8-b855-c5eebfc15849" />
 
-*知识图谱 RAG 从零跑通全记录*
+
 
 ---
 
@@ -18,29 +17,39 @@
 
 ---
 
-## 为什么叫 LightMed？
+# LightRAG : Zero to Hero
 
-**Light** 来自 [LightRAG](https://github.com/HKUDS/LightRAG)——这个项目的核心引擎，它把知识图谱和向量检索结合在一起，让 RAG 系统真正"理解"实体之间的关联，而不只是做字面匹配。**Med** 代表医疗（Medical），这是我选择的实验领域。
+这是我的一个个人学习项目，也是我第一次尝试构建基于知识图谱的 RAG 系统。领域选择了医疗，使用的框架是 [LightRAG](https://github.com/HKUDS/LightRAG) 和 [Ollama](https://ollama.ai/)。
 
-学知识图谱 RAG 有一道坎：理论很好懂，跑起来一塌糊涂。本地 7B 模型跑 LightRAG，文档一长就超时，并发一开就崩溃，到处是"ReadTimeout"。这个仓库就是我把这道坎翻过去的完整记录。
+这个仓库记录了我从零开始跑通整个系统的过程，包括遇到的各种问题以及最终的解决方案。如果你也是 RAG 初学者，正在尝试用本地模型跑 LightRAG，希望这里的记录能帮你少走一些弯路。
 
-这不是一个框架，也不是生产工具。它是我作为 RAG 初学者的第一次实践——用 LightRAG 现有的 API，在本地把医疗知识图谱从零跑通，然后把所有踩过的坑记录下来。
+---
 
-如果你也在用本地模型跑 LightRAG，希望这里的记录能帮你少掉几根头发。
+## 这个项目是什么
+
+这不是一个框架，也不是生产级工具。它是基于 LightRAG 已有 API 搭建的一个横向探索项目。知识图谱的构建和检索算法都来自 LightRAG，我没有自己实现这些核心部分。我做的事情是：
+
+- 将 LightRAG 接入本地运行的 Ollama（LLM 用 qwen2.5:7b，Embedding 用 bge-m3）
+- 加载中文医疗知识库，构建知识图谱
+- 用 FastAPI 封装成 API 服务，配套写了一个简单的 HTML 网页客户端
+- 花了大量时间调试超时和并发问题（见下文）
 
 ---
 
 ## 遇到的问题与解决方案
 
-这一节是这个仓库最有价值的部分。官方文档没有告诉你在消费级硬件上会发生什么。
+这一节是我保留这个仓库最主要的原因。用本地 7B 模型跑 LightRAG，在消费级硬件上远没有文档里描述的那么顺利。
 
 ### 问题一：插入知识图谱时频繁超时
 
-**现象**：处理几个文档后出现 `ReadTimeout` 或 `httpx.ReadTimeout`，进程在处理 10~20 个 chunk 后无声无息地挂掉，存储目录里留下不完整的图谱文件。
+这是最难缠的问题。LightRAG 在插入文档时，会调用 LLM 对每个文本块进行实体和关系提取。在本地 7B 模型上，这个过程比预期慢得多，默认的超时设置会导致整个插入过程中途失败。
 
-**原因**：LightRAG 在插入时会调用 LLM 对每个文本块提取实体和关系。本地 7B 模型的推理速度远比云端 API 慢，默认超时完全不够用。
+**具体表现：**
+- 处理几个文档后出现 `ReadTimeout` 或 `httpx.ReadTimeout` 错误
+- 进程在处理 10~20 个 chunk 后无声无息地挂掉
+- 存储目录里留下不完整的图谱文件
 
-**解决方案**：把超时拉到你认为"不可能这么慢"的程度，然后再翻倍。
+**解决方案：** 将 LLM 超时设置为 1200 秒，Embedding 超时设置为 1800 秒，并在每次超时错误后等待 30 秒再继续。
 
 ```python
 llm_model_kwargs={
@@ -50,51 +59,33 @@ llm_model_kwargs={
 }
 ```
 
-对应配置文件中的设置（`configs/model_config.yaml`）：
+### 问题二：并发请求压垮本地模型
 
-```yaml
-llm:
-  model: "qwen2.5:7b"
-  timeout: 1200       # 别改小，除非你的显卡比我好很多
+LightRAG 支持并发请求以加快插入速度。这在调用云端 API 时没有问题，但在本地 7B 模型上，多个请求同时占用 GPU 显存，会导致显存溢出或连锁超时。
 
-embedding:
-  model: "bge-m3:latest"
-  timeout: 1800       # 30 分钟
-```
-
----
-
-### 问题二：并发请求把本地模型压垮
-
-**现象**：LightRAG 默认会并发调用 LLM，在本地 7B 模型上会触发显存溢出或连锁超时，表现为多个任务同时失败。
-
-**原因**：云端 API 并发没问题，本地 GPU 显存有限，多个推理请求同时占用显存会直接 OOM。
-
-**解决方案**：`asyncio.Semaphore(1)` 强制串行，慢但稳。
+**解决方案：** 用 `asyncio.Semaphore(1)` 强制所有插入请求串行执行。
 
 ```python
 self._semaphore = asyncio.Semaphore(1)
 
 async with self._semaphore:
     await self.rag.ainsert(doc_content)
-    await asyncio.sleep(1.0)  # 每次插入后让模型喘口气
+    await asyncio.sleep(1.0)  # 每次插入后稍作等待
 ```
 
----
+这样做插入速度变慢，但不会再出现崩溃。
 
-### 问题三：文档太长，LightRAG 内部分块后仍然超时
+### 问题三：长文档即使经过 LightRAG 内部分块后仍然超时
 
-**现象**：LightRAG 自身有分块机制，但对于超过 5000 字的医疗长文档，即使经过内部分块，单个 chunk 的实体提取依然超时。
+LightRAG 自身有分块机制，但对于一些很长的医疗文档（有些超过 5000 字），即使经过 LightRAG 的内部分块，单个 chunk 在实体提取阶段依然会超时。
 
-**原因**：内部分块后 chunk 的字符数仍然可能较大，实体提取 LLM 调用时间超出超时限制。
-
-**解决方案**：在传入 LightRAG 之前先做一轮预处理分块，目标约 1000 字符，尽量在句号处截断。
+**解决方案：** 在将文档传入 LightRAG 之前，先做一轮预处理分块，目标每块约 1000 字符，并尽量在句号处截断，保证语义完整性。
 
 ```python
 if len(content) > 3000:
     for i in range(0, len(content), 1000):
         chunk = content[i:i + 1000]
-        # 在句号处截断，避免切断完整语句
+        # 尝试在句号处截断，避免切断完整语句
         if '。' in chunk:
             last_period = chunk.rfind('。')
             if last_period > 700:
@@ -103,7 +94,7 @@ if len(content) > 3000:
         await asyncio.sleep(1.0)
 ```
 
-最终是双重分块：我的预处理在外层，LightRAG 的内部分块在里层。这个组合才让整个插入过程稳定下来。
+也就是说，最终是在 LightRAG 自身分块机制之上，又加了一层预处理分块。这个双重分块策略让整个插入过程稳定下来。
 
 ---
 
@@ -116,38 +107,40 @@ if len(content) > 3000:
     v
 FastAPI 服务端  (medical_rag_api_server.py)
     |
+    | Python
     v
 RAGManager + ModelManager  (src/core/)
     |
     | LightRAG API
     v
-LightRAG  （知识图谱构建与检索）
+LightRAG  （知识图谱构建与检索，来自原始仓库）
     |
     | HTTP
     v
-Ollama  （qwen2.5:7b + bge-m3，完全本地运行）
+Ollama  （qwen2.5:7b 负责推理，bge-m3 负责向量化）
     |
+    | 读写文件
     v
 本地存储  (medical_json_small_storage/)
 ```
 
-LightRAG 支持四种查询模式，均为原始实现，本项目直接调用：
+LightRAG 提供四种查询模式，均直接使用 LightRAG 的实现：
 
 | 模式 | 说明 |
 |------|------|
 | `naive` | 纯向量相似度检索，速度最快 |
-| `local` | 从最相关实体出发做图谱局部遍历 |
-| `global` | 利用图谱全局社区摘要信息 |
-| `hybrid` | 三者综合，效果最好，推荐 |
+| `local` | 从最相关实体出发，在图谱中做局部遍历 |
+| `global` | 利用图谱全局的社区摘要信息 |
+| `hybrid` | 以上三种综合，效果最好，推荐使用 |
 
 ---
 
-## 快速开始
+## 运行方法
 
 ### 环境要求
 
 - Python 3.9+
-- [Ollama](https://ollama.ai/) 本地运行
+- [Ollama](https://ollama.ai/) 本地运行中
 - 建议 8GB 以上内存，6GB 以上显存的 GPU
 
 ### 安装
@@ -179,7 +172,7 @@ ollama pull bge-m3:latest
 python medical_rag_json_optimized_small.py
 ```
 
-脚本会将 JSON 中的每 3 条疾病记录合并为一个文本块再传入 LightRAG。这个过程需要较长时间。以我的机器（RTX 3060 12GB）为例，插入 200 条记录大约需要 1~2 小时。请耐心等待，中途不要中断。
+脚本会将 JSON 中的每 3 条疾病记录合并为一个文本块再传入 LightRAG。这个过程需要较长时间。插入 200 条记录大约需要 1~2 小时。请耐心等待，中途不要中断。
 
 ### 第二步：启动 API 服务
 
